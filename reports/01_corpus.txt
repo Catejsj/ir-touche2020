@@ -1,0 +1,137 @@
+[1] SOURCE
+    collection   Webis-Touche-2020, Task 1 (argument retrieval)
+    shared task  Touche @ CLEF 2020 (Bondarenko et al.)
+    distributed  as part of BEIR (Thakur et al., NeurIPS 2021)
+    obtained     huggingface.co/datasets/BeIR/webis-touche2020
+    documents    args.me corpus - arguments crawled from five debate
+                 portals (debatewise, idebate, debatepedia, debate.org,
+                 canadian parliament)
+    licence      CC BY-SA 4.0
+
+    The retrieval task: given a controversial question a person might
+    actually type - 'Should teachers get tenure?' - return arguments that
+    help them take a side. Relevance is argument quality and stance
+    support, not topical aboutness, which is why the judges used a scale
+    rather than a yes/no.
+
+[2] CLEANING
+    documents as distributed   382,545
+    dropped, under 3 words     -13,155
+    dropped, duplicate id      -0
+    kept                       369,390 (96.6%)
+
+    Unicode is normalised (NFKC) and whitespace collapsed, per field.
+    Nothing is lowercased or stemmed here - that belongs to the indexing
+    stage, and the raw text has to survive so results can be shown to a
+    reader in the form the debater wrote them.
+
+[2b] POOLED SUBSET
+    The full collection is 369,390 documents and about 110
+    million words. Building an index over it exhausted the memory on
+    the machine available to us - the process was killed by the
+    kernel. Rather than hide that, we retrieve over a pooled subset,
+    which is standard practice when a full collection is out of reach:
+
+      every JUDGED document kept      2,095
+      random unjudged distractors     57,905 (seed 42)
+      collection searched             60,000 (16.2% of the full corpus)
+
+    (2,095 distinct documents carrying 2,210 judgments - a few documents
+    were judged for more than one query.)
+
+    Why this keeps the evaluation valid: a metric can only be computed
+    over documents a human judged, and every one of them is still
+    here. No query loses a relevant document, and no measure changes
+    definition.
+
+    What it does change, and we say so on the slide: the task is
+    easier. A system now sifts 60,000 documents instead of 369,390,
+    so there are roughly six times fewer chances to rank an irrelevant
+    document above a relevant one. Our scores are therefore an
+    upper bound on what the same systems would achieve on the full
+    collection, and they are not comparable to published Touche
+    numbers. Re-running at full scale is the first item in future
+    work - the code takes --max-docs 0 and needs only more memory.
+
+[3] SIZE
+    documents searched   60,000   (pooled subset of 369,390)
+    queries (test)       49
+    relevance judgments  2,210  (4 dropped with the short documents)
+
+    document length in words
+      min                3
+      25th pct          34
+      median           127
+      mean             300
+      75th pct         401
+      95th pct       1,248
+      max           16,162
+
+    total words          18,008,977
+    The distribution is heavily right-skewed - the mean is well above
+    the median because a few arguments run to thousands of words. This
+    is the reason BM25's length normalisation matters here and is
+    revisited in the retrieval report.
+
+    query length in words
+      mean 6.6, median 6, min 3, max 11
+
+    example queries
+      Should teachers get tenure?
+      Is vaping with e-cigarettes safe?
+      Should insider trading be allowed?
+      Should corporal punishment be used in schools?
+      Should social security be privatized?
+      Is a college education worth it?
+
+[4] RELEVANCE JUDGMENTS  (this is the part that decides the evaluation)
+     level   judgments    share  meaning
+         0       1,278   57.8%  judged NOT relevant
+         1         296   13.4%  relevant
+         2         636   28.8%  highly relevant
+
+    documents judged per query   mean 45.1, min 40, max 52
+    RELEVANT (level >= 1) per query  mean 19.0, min 6, max 32
+
+    Two consequences, both of which shape the evaluation:
+
+    1. Graded relevance. 636 documents are rated 2 and
+       296 are rated 1. A system that puts level-2
+       arguments on top is better than one that puts level-1 arguments
+       on top, and nDCG is the measure that can see that difference.
+       Precision/recall/F1 cannot - they need a yes/no, so we state the
+       threshold we use (level >= 1 counts as relevant) rather than
+       leaving it implicit.
+
+    2. 1,278 documents were judged and found NOT relevant.
+       Most collections omit these, so a wrong answer is indistinguishable
+       from an unjudged one. Here, when a system ranks one of these in the
+       top 10, a human has explicitly said it does not answer the query -
+       which is a much stronger error analysis than 'not in our list'.
+
+    Unjudged documents: the other 382,000-odd documents were never shown
+    to a judge. Standard TREC practice treats them as not relevant, and
+    that is what we do, but it is an assumption and it is in the
+    limitations.
+
+[5] LEGAL AND ETHICAL NOTES
+    - Licence: CC BY-SA 4.0. Reuse, modification and redistribution are
+      permitted with attribution and share-alike. The Touche task and the
+      BEIR paper are both cited in the references.
+    - Provenance: args.me crawled five public debate portals. We use the
+      published research corpus, not our own crawl, so no site's terms of
+      service are engaged by this project.
+    - Personal data: arguments were posted publicly under usernames.
+      The BEIR distribution carries no author field, no username and no
+      timestamp - only an id, a title and the argument text. There is
+      therefore nothing to anonymise, and we add nothing back.
+    - We do not attempt to identify authors, link arguments to people, or
+      aggregate a person's positions across documents.
+    - Content: the corpus is debate material on abortion, gun control,
+      religion, immigration and similar. Some arguments are offensive.
+      They are retrieved and scored, never endorsed; any example shown in
+      the report is chosen to illustrate a retrieval behaviour, and
+      slides carry a content note.
+    - Our system ranks arguments by how well they match a query. It does
+      not judge whether an argument is true, and it should not be
+      presented as doing so.

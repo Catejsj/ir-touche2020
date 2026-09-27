@@ -1,0 +1,172 @@
+[1] HOW RELEVANCE IS JUDGED
+    level 2   highly relevant       -> counted relevant
+    level 1   relevant              -> counted relevant
+    level 0   judged NOT relevant   -> counted not relevant
+    unjudged  never seen by a judge -> counted not relevant
+
+    Binary threshold: LEVEL >= 1. Stated explicitly because it is a
+    choice, not a given - the same run scored at level == 2 only gives
+    different numbers, and that variant is in [4].
+
+    Matching is by document id, not by text overlap: a run document
+    counts as the judged document or it does not. No partial credit.
+
+[2] SET-BASED MEASURES  (what the rubric asks for first)
+    Precision = of the k we returned, how many were relevant.
+    Recall    = of all relevant documents, how many we found.
+    F1        = their harmonic mean.
+
+    --- cutoff k = 5
+    model               P@k      R@k     F1@k
+    Boolean           0.339    0.110    0.159
+    VSM (TF-IDF)      0.261    0.085    0.125
+    BM25              0.592    0.188    0.275
+
+    --- cutoff k = 10
+    model               P@k      R@k     F1@k
+    Boolean           0.292    0.190    0.219
+    VSM (TF-IDF)      0.210    0.134    0.158
+    BM25              0.516    0.324    0.380
+
+    --- cutoff k = 20
+    model               P@k      R@k     F1@k
+    Boolean           0.243    0.300    0.256
+    VSM (TF-IDF)      0.183    0.228    0.196
+    BM25              0.389    0.471    0.408
+
+    Recall at these cutoffs is low by construction, not by failure:
+    a query has 19 relevant documents on average, so even a
+    perfect top-10 reaches recall 0.53. F1 inherits that
+    ceiling. This is why the ranking measures below carry the argument.
+
+[3] RANKING MEASURES
+    Hit@k  did we return anything relevant in the top k at all
+    MRR    1 / rank of the first relevant document
+    MAP    mean average precision over the top 100
+    nDCG@k gain-weighted, and the ONLY measure here that distinguishes
+           a level-2 document from a level-1 one
+
+    model            Hit@10      MRR      MAP   nDCG@10   nDCG@20    R@100
+    Boolean           0.898    0.491    0.194     0.289     0.315    0.550
+    VSM (TF-IDF)      0.776    0.413    0.149     0.183     0.207    0.550
+    BM25              0.980    0.753    0.408     0.525     0.527    0.762
+
+    95% confidence intervals on nDCG@10 (2,000 bootstrap resamples over
+    the 49 queries - with this few queries the interval is wide and
+    pretending otherwise would be dishonest):
+      Boolean        0.289  [0.233, 0.341]
+      VSM (TF-IDF)   0.183  [0.133, 0.234]
+      BM25           0.525  [0.448, 0.588]
+
+    Best by nDCG@10: BM25.
+
+[4] SENSITIVITY: WHAT IF ONLY LEVEL 2 COUNTS?
+    Same runs, relevance threshold raised to 'highly relevant' only.
+
+    model           P@10 (>=1)  P@10 (==2)  nDCG@10 (>=1)  nDCG@10 (==2)
+    Boolean              0.292       0.240          0.289          0.286
+    VSM (TF-IDF)         0.210       0.137          0.183          0.180
+    BM25                 0.516       0.423          0.525          0.527
+
+    The ordering of the models does not change, which is the useful
+    result: our conclusion does not depend on where we put the
+    threshold.
+
+[5] QUERY-LEVEL ERROR ANALYSIS
+    Every document in a top-10 is one of three things. This collection
+    lets us tell them apart, which most cannot:
+
+      relevant      a judge rated it 1 or 2
+      JUDGED WRONG  a judge looked at it and rated it 0
+      unjudged      no judge ever saw it - could be either
+
+    model            relevant   judged wrong   unjudged
+    Boolean           143 ( 29%)       41 (  8%)    306 ( 62%)
+    VSM (TF-IDF)      103 ( 21%)      115 ( 23%)    272 ( 56%)
+    BM25              253 ( 52%)       65 ( 13%)    172 ( 35%)
+
+    The 'judged wrong' column is the honest failure count. The
+    'unjudged' column is the uncertainty: those documents are scored as
+    misses, but nobody ever checked them, so some are false failures.
+    This is the main caveat on every precision number above.
+
+[6] WHERE EACH SYSTEM FAILED  (worst five queries by nDCG@10)
+    --- Boolean
+      nDCG@10 0.000  P@10 0.00  (26 relevant exist)  Should gay marriage be legal?
+      nDCG@10 0.000  P@10 0.00  (28 relevant exist)  Should people become vegetarian?
+      nDCG@10 0.000  P@10 0.00  (29 relevant exist)  Should the death penalty be allowed?
+      nDCG@10 0.000  P@10 0.00  (15 relevant exist)  Should the voting age be lowered?
+      nDCG@10 0.000  P@10 0.00  (31 relevant exist)  Should abortion be legal?
+
+    --- VSM (TF-IDF)
+      nDCG@10 0.000  P@10 0.00  (26 relevant exist)  Should recreational marijuana be legal?
+      nDCG@10 0.000  P@10 0.00  (26 relevant exist)  Should gay marriage be legal?
+      nDCG@10 0.000  P@10 0.00  (15 relevant exist)  Is a two-state solution an acceptable solution to th
+      nDCG@10 0.000  P@10 0.00  (26 relevant exist)  Should more gun control laws be enacted?
+      nDCG@10 0.000  P@10 0.00  (24 relevant exist)  Should prostitution be legal?
+
+    --- BM25
+      nDCG@10 0.000  P@10 0.00  (31 relevant exist)  Should abortion be legal?
+      nDCG@10 0.052  P@10 0.20  (29 relevant exist)  Should the death penalty be allowed?
+      nDCG@10 0.053  P@10 0.10  (13 relevant exist)  Should birth control pills be available over the cou
+      nDCG@10 0.064  P@10 0.10  (26 relevant exist)  Should gay marriage be legal?
+      nDCG@10 0.069  P@10 0.10  (15 relevant exist)  Is a two-state solution an acceptable solution to th
+
+[7] WHY THE VECTOR SPACE MODEL LOSES TO BOOLEAN
+    An unexpected result deserves an explanation, not a shrug. VSM is a
+    weighted model and Boolean is not, so VSM scoring lower needs a
+    cause. Measure the documents each model actually returns:
+
+    model            median words in top 10   % under 50 words
+    Boolean                             844                8%
+    VSM (TF-IDF)                         16               79%
+    BM25                                333               15%
+    the collection                      127               31%
+
+    There it is. Cosine similarity divides by the document's vector
+    length, so a very short document containing a query term once gets
+    a near-perfect score - its vector points almost exactly at the
+    query. A three-word argument that happens to say 'tenure' beats a
+    thoughtful 400-word one that says it five times among other things.
+
+    BM25 does not normalise length away; it compares each document
+    against the collection average and saturates term frequency, so a
+    short document gets no free ride. On a corpus whose lengths run
+    from 3 to 16,162 words, that difference decides the ranking.
+
+    This is the single most useful thing in our results: it is a
+    concrete, measurable demonstration of why length normalisation is
+    the thing BM25 is actually for.
+
+[8] TWO FAILURES, LOOKED AT CLOSELY
+    Query: Should abortion be legal?
+    BM25 scored nDCG@10 = 0.000 here.
+
+    What it returned in the top 5:
+      1. [unjudged    ] Abortion is murder.
+      2. [judged WRONG] Resolved - Abortion Should Be Legal
+      3. [unjudged    ] Abortion should be made legal.
+      4. [unjudged    ] Should Financial abortion
+      5. [unjudged    ] Abortion Laws Should Be Legalized.
+
+    What it missed - relevant documents not in the top 100:
+      (level 2) Abortion
+      (level 2) Abortion Should Remain Legal
+      (level 2) Abortion should remain legal.
+      (level 2) Abortion
+      (level 2) Abortion
+      ... 21 relevant documents missed in total
+
+    The pattern across the worst queries is vocabulary mismatch: the
+    query uses one word for the topic and the argument uses another, so
+    a model that can only match terms has nothing to score. That is the
+    specific weakness a dense retriever would address, and it is the
+    first item in future work.
+
+[9] AGREEMENT BETWEEN THE MODELS
+    Relevant documents found in the top 10, by model:
+      Boolean          143  (  39 found by no other model)
+      VSM (TF-IDF)     103  (  34 found by no other model)
+      BM25             253  ( 116 found by no other model)
+      union of three   331  (35.5% of all relevant documents)
+

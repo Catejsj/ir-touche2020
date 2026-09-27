@@ -1,0 +1,159 @@
+[1] NORMALIZATION
+    lowercase          'Tenure' and 'tenure' are one term
+    Unicode NFKC       done in build_corpus, per field
+    token pattern      (?u)\b[a-z][a-z'-]+\b
+                       letters, apostrophes and hyphens only, so
+                       'don't' and 'well-being' survive as one token
+                       while '1990', '$' and '###' are dropped
+    minimum length     2 characters
+
+    Numbers are discarded. In this collection they are years, vote
+    counts and statistics quoted inside arguments; a query like 'Should
+    teachers get tenure?' never contains one, so indexing them costs
+    memory and buys no matches.
+
+[2] TOKENIZATION
+    Tool: scikit-learn's regex tokenizer, not nltk.word_tokenize.
+    This is a deliberate reversal of what we would do for a tagging
+    task. NLTK's Treebank tokenizer is more careful - it splits clitics
+    and handles punctuation properly - but it is a Python loop, and this
+    corpus is 110 million words. The regex runs in C.
+    For retrieval the difference does not matter: a term is only ever
+    used as a dictionary key, never shown to a user and never labelled,
+    so 'don' + 't' versus 'don't' changes nothing about which documents
+    come back, as long as queries are tokenized the same way. They are -
+    the same analyzer is applied to both sides.
+
+[3] VOCABULARY, BEFORE FILTERING
+    distinct terms     169,313
+    postings (non-zero document-term pairs) 8,225,233
+    tokens indexed     17,682,501
+    built in           4s
+
+[4] STOPWORD REMOVAL
+    NLTK English list           198 words
+    our debate-specific list    21 words
+    terms removed from vocab    209
+    tokens removed              8,772,178 (49.6% of all tokens)
+
+    A third of the text is stopwords, and removing them shrinks the
+    index without changing what can be found - 'the' appears in almost
+    every document, so it separates nothing.
+
+    The domain list is the interesting half. In a debate corpus every
+    document contains 'argument', 'claim', 'should' and 'believe'. They
+    behave exactly like stopwords here even though no standard list
+    contains them. Removed: also, argument, arguments, believe, con, could, debate, furthermore, ...
+
+    Caveat we accept: dropping 'should' means the query 'Should teachers
+    get tenure?' loses a word. That is fine - it appears in 60%+ of
+    documents, so it could only add noise to the ranking.
+
+[5] STEMMING
+    Porter stemmer, applied to the VOCABULARY, not to every token.
+    Stemming 110 million tokens one at a time in Python would take
+    hours; stemming the 169,313 distinct terms once and then
+    merging the columns that collapse together gives an identical index
+    in seconds. This is the single optimisation that makes the pipeline
+    runnable on a laptop.
+
+    Why stem at all, when the NER project deliberately did not?
+    Because the output here is a ranked list of documents, not a span of
+    text. Nobody ever sees a stem. A user searching 'teachers' should
+    match a document arguing about 'teacher' and 'teaching', and
+    stemming is what makes those the same key.
+
+    Porter vs WordNet lemmatization on real terms from this corpus:
+      term             Porter         WordNet lemma
+      teachers         teacher        teacher
+      teaching         teach          teaching
+      privatized       privat         privatized
+      privatization    privat         privatization
+      smoking          smoke          smoking
+      vaccines         vaccin         vaccine
+      policies         polici         policy
+      arguing          argu           arguing
+
+    Porter is the right choice for retrieval and the table shows why:
+    it collapses 'privatized' and 'privatization' to one key, which is
+    the behaviour a searcher wants. The lemmatizer keeps them apart
+    because they are genuinely different words - correct linguistically,
+    useless for matching. Porter's non-words ('privat', 'polici') are
+    never displayed, so their ugliness costs nothing.
+
+    terms before stemming       169,104
+    terms after stemming        130,817
+    merged away                 38,287 (22.6%)
+    took                        18s
+
+[6] THE INVERTED INDEX
+    minimum document frequency  2 (a term in one document links nothing to anything)
+    terms dropped by that       80,772
+
+    FINAL INDEX
+      documents                 60,000
+      terms (postings lists)    50,045
+      postings                  5,302,673
+      tokens                    8,815,830
+      density                   0.176597%
+      memory                    43 MB
+
+    Structure: compressed sparse column. Column j of the matrix holds
+    every document containing term j together with its term frequency -
+    which is precisely a postings list. The classic dictionary-of-lists
+    inverted index and this matrix store the same information; the
+    matrix form lets the scoring run as vectorised arithmetic instead of
+    a Python loop over postings.
+
+    Postings list lengths (how many documents contain a term)
+      min                 2
+      median              4
+      mean              106
+      95th pct          321
+      max            22,608
+
+    Longest postings lists (most common terms after all filtering)
+      one                 22,608 documents (37.7%)
+      like                21,044 documents (35.1%)
+      peopl               20,701 documents (34.5%)
+      make                20,286 documents (33.8%)
+      use                 17,152 documents (28.6%)
+      even                16,961 documents (28.3%)
+      time                16,495 documents (27.5%)
+      state               15,418 documents (25.7%)
+      go                  14,489 documents (24.1%)
+      way                 14,351 documents (23.9%)
+      first               14,316 documents (23.9%)
+      mean                14,249 documents (23.7%)
+
+    14,789 terms appear in exactly 2 documents (30% of the
+    vocabulary). That is Zipf's law: a few terms are everywhere and most
+    are almost nowhere, which is what makes an inverted index worth
+    building - a query touches a handful of short lists, never the
+    whole collection.
+
+[7] SPARSE OR DENSE?  (the rubric asks for this choice to be justified)
+    We index sparse: one dimension per term, mostly zeros.
+
+    Sparse (what we use)
+      - 50,045 dimensions, 5,302,673 non-zeros, 42 MB
+      - exact term matching; a query for 'tenure' cannot miss a
+        document containing 'tenure'
+      - every score decomposes into per-term contributions, so any
+        ranking can be explained - which the error analysis depends on
+      - no training, no GPU, no model to download
+
+    Dense (what we did not use)
+      - 60,000 documents x 384 dimensions x 4 bytes = 92 MB, comparable size
+      - would match 'tenure' to 'job security' without sharing a word,
+        which is a real advantage on this task
+      - but encoding 369,390 documents with a sentence transformer on
+        CPU is hours of compute, and the rubric marks dense retrieval
+        optional
+      - and a dense score is a single number with no decomposition, so
+        'why did this rank first' has no answer to put on a slide
+
+    The honest summary: sparse is chosen for interpretability and for
+    fitting the machine we have. The gap it leaves - vocabulary
+    mismatch between a short question and a long argument - is the first
+    item in the limitations and the first item in future work.

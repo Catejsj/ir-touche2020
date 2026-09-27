@@ -1,0 +1,86 @@
+[1] QUERY PROCESSING
+    A query goes through the analyser the documents went through:
+    lowercase, the same token pattern, the same stopword list, the same
+    Porter stemmer. Any mismatch here and terms silently fail to meet.
+
+    query                                           terms  indexed terms
+    Should teachers get tenure?                         3  teacher, get, tenur
+    Is vaping with e-cigarettes safe?                   3  vape, e-cigarett, safe
+    Should insider trading be allowed?                  3  insid, trade, allow
+    Should corporal punishment be used in school        4  corpor, punish, use, school
+    Should social security be privatized?               3  social, secur, privat
+    Is a college education worth it?                    3  colleg, educ, worth
+
+    query terms after analysis: mean 4.0, min 2, max 8
+    queries left with no indexed term: 0
+
+    Note what stopword removal did: 'Should teachers get tenure?' is six
+    words and becomes two terms. That is correct - 'should', 'get' and
+    the question mark cannot discriminate between documents - but it
+    means the ranking rests on very little, and it is why the evaluation
+    section looks at per-query variance rather than only averages.
+
+[2] THE THREE MODELS
+
+    BOOLEAN
+      A document matches if it contains query terms. Pure set
+      membership: no weighting, no notion of degree.
+      We use OR, not AND. With a 2-3 term query, AND over a 60,000
+      document collection returns a handful of documents or none at
+      all, and a system that returns nothing cannot be evaluated.
+      To compare it against ranked models we order by COORDINATION
+      LEVEL - the number of distinct query terms present. This is
+      already a concession: real Boolean retrieval returns an unordered
+      set, and every ranking metric assumes an order. We state it
+      rather than pretend Boolean is a ranking model.
+
+    VECTOR SPACE MODEL
+      Document weight  (1 + log tf) x idf
+      Query weight     (1 + log qtf) x idf
+      Similarity       cosine = dot product / document vector length
+      The log dampens term frequency; idf rewards rare terms; the
+      cosine removes length. A 4,000-word argument and a 40-word one
+      are judged on direction, not size.
+
+    BM25
+      k1 = 1.2  how fast term frequency saturates
+      b  = 0.75  how hard long documents are penalised
+      idf = log(1 + (N - df + 0.5) / (df + 0.5))
+      Unlike the VSM, BM25 does not normalise length away completely -
+      it compares each document against the collection average. Given
+      this corpus (median 127 words, mean 300, max 16,162) that
+      difference is the main reason to expect the two to diverge.
+
+[3] RUNS
+    model       queries      rows  docs/query   seconds
+    boolean          49     4,900       100.0      0.01
+    vsm              49     4,900       100.0      0.04
+    bm25             49     4,900       100.0      0.02
+
+    Runs are stored 100 deep. Evaluation cuts at 10 and 20;
+    storing deeper costs nothing and lets recall be measured honestly.
+
+[4] WHAT THE MODELS DISAGREE ABOUT  (one query, top 5 each)
+    query: Should teachers get tenure?
+
+    --- boolean
+      1.    3.000  The collective bargaining rights of teachers should be rem
+      2.    3.000  The collective bargaining rights of teachers should be rem
+      3.    3.000  The collective bargaining rights of teachers should be rem
+      4.    3.000  Colleges should abolish the ability for teachers to be ten
+      5.    3.000  The collective bargaining rights of teachers should be rem
+
+    --- vsm
+      1.    7.888  There should not be a teacher tenure.
+      2.    5.485  Teacher Tenure
+      3.    4.621  Colleges should abolish the ability for teachers to be ten
+      4.    3.666  Teacher Tenure
+      5.    3.659  Colleges should abolish the ability for teachers to be ten
+
+    --- bm25
+      1.   22.462  There should not be a teacher tenure.
+      2.   22.395  There should not be a teacher tenure.
+      3.   22.067  Teacher Tenure
+      4.   21.985  There should not be a teacher tenure.
+      5.   21.842  Colleges should abolish the ability for teachers to be ten
+
