@@ -1,12 +1,17 @@
 # Presentation structure
 
-Maps the rubric's 7 criteria onto 7 parts, each backed by a specific
+Maps the rubric's 7 criteria onto 6 parts, each backed by a specific
 script/report/figure in this repo. Numbers are from the generated reports
 (`reports/01_corpus.txt` … `reports/04_evaluation.txt`) — re-check them if the
 pipeline is re-run before the talk, since a re-run can shift them slightly.
 
 Total: ~20-25 min, 3-4 min per person + buffer. Order follows the pipeline's
 data flow: corpus → indexing → retrieval models → evaluation → limitations.
+
+**Research question:** does BM25 actually beat Boolean matching and TF-IDF at
+finding good debate arguments? Answer: yes — nDCG@10 0.525 against 0.289 and
+0.183. *Where* and *why* each model fails is the explanation, carried by
+Person 5, not a second question.
 
 ---
 
@@ -17,24 +22,22 @@ on.
 
 - **The task**: given a query, return a ranked list of documents, best first.
   Unlike classification there is no label per document — relevance is a
-  relationship between a query and a document, and it is judged by people.
-- **RQ1**: how do the three classic retrieval models — Boolean, vector space,
-  probabilistic — compare on one collection under one scoring function?
-- **RQ2**: where does each one fail, and why? Answered in Person 5's section,
-  and it is the question that makes this more than a leaderboard.
+  relationship between a query and a document, judged by people.
+- **The research question**, stated as a yes/no so the answer is unambiguous:
+  does BM25 beat Boolean and TF-IDF at finding good debate arguments?
 - **Why argument retrieval**: the query is a controversial question a person
   might really type (*"Should teachers get tenure?"*) and a relevant document is
-  one that helps them take a side. Relevance is therefore about argument quality
-  and stance, not topical aboutness — which is why the judges used a 0/1/2 scale
+  one that helps them take a side. Relevance is argument quality and stance
+  support, not topical aboutness — which is why the judges used a 0/1/2 scale
   instead of yes/no. That grading is what makes Person 5's evaluation richer
   than a binary one.
-- **Unit of analysis**: one argument = one document; one query = one ranked list;
-  one (query, document) pair = one relevance judgment.
+- **Unit of analysis**: one argument = one document; one query = one ranked
+  list; one (query, document) pair = one relevance judgment.
 - **Scope**: sparse lexical retrieval only. Dense/neural retrieval is marked
-  optional in the rubric and is out of scope for reasons Person 3 gives and
+  optional in the rubric and is out of scope for the reasons Person 3 gives and
   Person 6 revisits.
 
-**Slides:** 1 — the task, the two RQs, one example query.
+**Slides:** 1 — the task, the RQ, one example query. No output to show yet.
 
 ---
 
@@ -47,29 +50,21 @@ on.
 crawl of five public debate portals — debatewise, idebate, debatepedia,
 debate.org, and the Canadian parliament record.
 
-**Cleaning pipeline** (drop counts):
-
-- documents as distributed: 382,545
-- under 3 words: -13,155
-- duplicate id: -0
-- kept: 369,390 (96.6%)
+**Cleaning pipeline** (drop counts): 382,545 as distributed; -13,155 under 3
+words; -0 duplicate id; **369,390 kept (96.6%)**.
 
 **The pooled subset — say this before anyone asks.** Indexing all 369,390
-documents exhausted memory on the machine available to us and the process was
-killed by the kernel. We therefore search a **pooled subset**: every judged
-document (2,095, carrying 2,210 judgments) plus 57,905 random unjudged
-distractors, 60,000 total, seed 42. No query loses a relevant document and no
-measure changes definition, so the evaluation stays valid — but the task is
-easier and our scores are an **upper bound**, not comparable to published Touché
-numbers. `--max-docs 0` restores the full collection.
+documents exhausted memory and the process was killed by the kernel. We
+therefore search a **pooled subset**: every judged document (2,095, carrying
+2,210 judgments) plus 57,905 random unjudged distractors, **60,000 total**,
+seed 42. No query loses a relevant document and no measure changes definition,
+so the evaluation stays valid — but the task is easier and our scores are an
+**upper bound**, not comparable to published Touché numbers. `--max-docs 0`
+restores the full collection.
 
-**Corpus description**:
-
-- 60,000 documents searched, 18,008,977 words
-- document length: median 127 words, mean 300, min 3, max 16,162 — heavily
-  right-skewed, and this is the single fact that decides Person 5's headline
-  result
-- 49 queries, mean 6.6 words, e.g. *"Is vaping with e-cigarettes safe?"*
+**Corpus description**: 60,000 documents, 18,008,977 words; document length
+median 127 words, mean 300, min 3, **max 16,162** — heavily right-skewed, and
+this single fact decides Person 5's headline result. 49 queries, mean 6.6 words.
 
 **Relevance judgments** — the reason this collection was chosen:
 
@@ -79,21 +74,20 @@ numbers. `--max-docs 0` restores the full collection.
 | 1 | 296 | 13.4% | relevant |
 | 2 | 636 | 28.8% | highly relevant |
 
-45.1 documents judged per query on average; 19.0 of them relevant. Two
-consequences, both of which shape Person 5's section: relevance is **graded**,
-so nDCG can see a difference precision cannot; and 1,278 documents were
-**explicitly rejected by a human**, so a failure can be a judged "no" rather
-than merely an absence.
+45.1 documents judged per query, 19.0 of them relevant. Two consequences, both
+shaping Person 5's section: relevance is **graded**, so nDCG sees a difference
+precision cannot; and 1,278 documents were **explicitly rejected by a human**,
+so a failure can be a judged "no" rather than merely an absence.
 
 **Legal/ethical compliance** (10 of 100 rubric points):
 
-- Licence: CC BY-SA 4.0 — reuse, modification and redistribution permitted with
+- Licence CC BY-SA 4.0 — reuse, modification and redistribution permitted with
   attribution and share-alike. Touché and BEIR both cited.
 - Provenance: we use the published research corpus, not our own crawl, so no
   portal's terms of service are engaged.
-- Personal data: arguments were posted publicly under usernames. The BEIR
+- Personal data: arguments were posted publicly under usernames, but the BEIR
   distribution carries **no author, no username, no timestamp** — only id, title
-  and text. There is nothing to anonymise and we add nothing back.
+  and text. Nothing to anonymise, and we add nothing back.
 - We do not identify authors, link arguments to people, or aggregate anyone's
   positions across documents.
 - Content: debate material on abortion, gun control, religion, immigration.
@@ -114,32 +108,32 @@ table plus the legal/ethical bullets.
 1. **Normalization** — lowercase, Unicode NFKC, token pattern
    `\b[a-z][a-z'-]+\b`. Letters, apostrophes and hyphens only, so *don't* and
    *well-being* survive as one token while *1990* and *$* are dropped. Numbers
-   are discarded deliberately: in this corpus they are years and vote counts
-   inside arguments, and a 6-word debate question never contains one.
-2. **Tokenization** — scikit-learn's regex tokenizer, **not** `nltk.word_tokenize`.
-   This is a deliberate reversal of what the NER project did. The Treebank
-   tokenizer is more careful but it is a Python loop over 110 million words. For
-   retrieval a term is only ever a dictionary key — never displayed, never
-   labelled — so the split only has to be *consistent* between documents and
-   queries, and it is: the same analyser runs on both sides
-   (`retrieve.py::analyse`).
+   are discarded deliberately: here they are years and vote counts inside
+   arguments, and a 6-word debate question never contains one.
+2. **Tokenization** — scikit-learn's regex tokenizer, **not**
+   `nltk.word_tokenize`. A deliberate reversal of what a tagging task would do:
+   the Treebank tokenizer is more careful but it is a Python loop over 110
+   million words. For retrieval a term is only ever a dictionary key — never
+   displayed, never labelled — so the split only has to be *consistent* between
+   documents and queries, and it is (`retrieve.py::analyse`).
 3. **Stopword removal** — NLTK English (198) plus a 21-word debate list
-   (*argument*, *debate*, *claim*, *believe*, *should*, *con*, *pro*). Removed
-   209 terms, which is **49.6% of all tokens**. The domain half is the
-   interesting part: every document in a debate corpus contains "argument" and
-   "should", so they behave exactly like stopwords even though no standard list
-   holds them. Accepted cost: *"Should teachers get tenure?"* loses two of its
-   words and retrieval rests on `teacher` + `tenur`.
+   (*argument*, *debate*, *claim*, *believe*, *should*, *con*, *pro*). 209 terms
+   removed, which is **49.6% of all tokens**. The domain half is the interesting
+   part: every document in a debate corpus contains "argument" and "should", so
+   they behave exactly like stopwords even though no standard list holds them.
+   Accepted cost: *"Should teachers get tenure?"* retrieves on `teacher` +
+   `tenur`.
 4. **Stemming** — Porter, applied to the **vocabulary** rather than to every
    token: 169,104 distinct terms stemmed once, then the columns that collapse
-   together are merged with one sparse matrix multiply. Identical result, 18
-   seconds instead of hours. 38,287 terms merged away (22.6%).
-   Porter over WordNet lemmatization, and the report shows why:
-   *privatized* and *privatization* both become `privat` under Porter but stay
-   apart under the lemmatizer — linguistically correct, useless for matching.
-   Porter's non-words (`polici`, `privat`) are never displayed.
-5. **The inverted index** — `min_df = 2` drops 80,772 terms that appear in a
-   single document. Final index: **60,000 documents x 50,045 terms, 5,302,673
+   together are merged with one sparse matrix multiply. Identical result, **18
+   seconds instead of hours**, and the only reason this runs on a laptop.
+   38,287 terms merged away (22.6%).
+   Porter over WordNet lemmatization, and the report shows why: *privatized* and
+   *privatization* both become `privat` under Porter but stay apart under the
+   lemmatizer — linguistically correct, useless for matching. Porter's non-words
+   (`polici`, `privat`) are never displayed.
+5. **The inverted index** — `min_df = 2` drops 80,772 terms appearing in a
+   single document. Final index: **60,000 documents × 50,045 terms, 5,302,673
    postings, 43 MB**, density 0.18%.
    Structure: compressed sparse column. **Column j holds every document
    containing term j with its term frequency — that is a postings list.** The
@@ -147,19 +141,19 @@ table plus the legal/ethical bullets.
    the matrix form lets scoring run as vectorised arithmetic rather than a Python
    loop, and one structure serves all three of Person 4's models.
    Postings lengths: median 4, mean 106, max 22,608 (`one`). Zipf in one line —
-   a query touches a handful of short lists, never the whole collection, which
-   is the entire reason an inverted index is worth building.
-6. **Sparse vs dense, justified** (the rubric asks for this explicitly):
-   sparse gives exact term matching, a score that decomposes into per-term
+   a query touches a handful of short lists, never the whole collection, which is
+   the entire reason an inverted index is worth building.
+6. **Sparse vs dense, justified** (the rubric asks for this explicitly): sparse
+   gives exact term matching, a score that decomposes into per-term
    contributions — which Person 5's error analysis depends on — and no GPU.
-   Dense would handle the vocabulary mismatch that Person 5 identifies as the
-   main failure mode, but encoding 60,000 documents on CPU is hours, dense
-   retrieval is optional in the rubric, and a dense score is one number with no
+   Dense would handle the vocabulary mismatch Person 5 identifies as the main
+   failure mode, but encoding 60,000 documents on CPU is hours, dense retrieval
+   is optional in the rubric, and a dense score is one number with no
    explanation to put on a slide. The gap it leaves is Person 6's first future
    work item.
 
-**Slides:** 2 — the five-stage pipeline with the numbers each stage moved;
-the index structure with the postings-list picture and the sparse/dense
+**Slides:** 2 — the five-stage pipeline with the number each stage moved; the
+index structure with the postings-list picture and the sparse/dense
 justification.
 
 ---
@@ -183,7 +177,7 @@ models we order by **coordination level** — how many distinct query terms are
 present. State this as the concession it is: real Boolean retrieval returns an
 *unordered set*, and every ranking metric assumes an order.
 
-**Vector Space Model** — document weight `(1 + log tf) x idf`, query weight the
+**Vector Space Model** — document weight `(1 + log tf) × idf`, query weight the
 same, similarity by **cosine**. The log dampens term frequency, idf rewards rare
 terms, and the cosine divides by the document's own vector length so a long
 document has no built-in advantage. That last property is exactly what goes
@@ -200,7 +194,7 @@ fitting the test set. `--sweep` reports the grid for transparency only. Saying
 this out loud is worth marks; quietly reporting a tuned best would cost them.
 
 Runs are stored 100 deep for all 49 queries; evaluation cuts at 5, 10 and 20.
-All three models score in under 0.05 seconds per run.
+All three models score a full run in under 0.05 seconds.
 
 **Slides:** 2 — query processing plus Boolean and VSM; BM25 with the
 saturation/length-normalisation contrast and the "we did not tune" statement.
@@ -213,17 +207,10 @@ saturation/length-normalisation contrast and the "we did not tune" statement.
 `figures/fig1`-`fig5`.
 
 **How relevance is judged — state this first, the rubric asks for it
-explicitly:**
-
-| | |
-|---|---|
-| level 2 | highly relevant → **counted relevant** |
-| level 1 | relevant → **counted relevant** |
-| level 0 | judged NOT relevant → counted not relevant |
-| unjudged | never seen by a judge → counted not relevant (TREC convention) |
-
-Binary threshold is **level >= 1**, and it is a choice, not a given. Matching is
-by document id — exact, no partial credit.
+explicitly:** level 2 and level 1 count as relevant; level 0 (judged NOT
+relevant) and unjudged count as not relevant, the TREC convention. Binary
+threshold is **level ≥ 1**, and it is a choice, not a given. Matching is by
+document id — exact, no partial credit.
 
 **Set-based measures** (`fig2`):
 
@@ -267,8 +254,8 @@ containing *tenure* once has a vector pointing almost exactly at the query and
 scores near-perfectly. **79% of what VSM returns is under 50 words.** BM25 does
 not normalise length away — it compares each document to the collection average
 and saturates term frequency — and on a corpus running from 3 to 16,162 words
-that difference decides the ranking. This is a concrete, measured demonstration
-of the thing BM25 exists to fix, and it is the best thing in the project.
+that difference decides the ranking. This is a measured demonstration of the
+thing BM25 exists to fix, and it is the best result in the project.
 
 **Query-level error analysis** (`fig3`) — every document in a top 10 is one of
 three things, and this collection can tell them apart:
@@ -285,18 +272,23 @@ number above.
 
 **A failure looked at closely.** BM25 scores nDCG@10 = **0.000** on *"Should
 abortion be legal?"* — its top 5 are topically perfect (*"Abortion should be
-made legal."*) but four are unjudged and one was explicitly rejected, while 21
-relevant documents sit outside the top 100. Per-query spread (`fig5`): BM25
+made legal."*) but four were never judged and one was explicitly rejected, while
+21 relevant documents sit outside the top 100. Per-query spread (`fig5`): BM25
 ranges from 0.000 to 0.889 across the 49 queries. Averages hide this.
+
+**The three models find different documents.** Of the relevant documents any
+model puts in a top 10: BM25 finds 253 (116 found by no other model), Boolean
+143 (39 unique), VSM 103 (34 unique). Union 331 — **35.5% of all relevant
+documents**. That gap is Person 6's ensemble argument.
 
 **Slides:** 3 — the relevance definition plus `fig1`; `fig2` and the recall
 ceiling; `fig4` as the headline finding, with `fig3` and the worked failure.
 
 ---
 
-## Person 6 — Limitation and Future Studies (rubric: 5 pts)
+## Person 6 — Limitations, Future Studies, and Presentation Synthesis (rubric: Limitation 5 pts + Presentation & Report Clarity 5 pts)
 
-**Limitations** — every one is specific to this project, not generic:
+**Limitations** — every one specific to this project, not generic:
 
 - **We searched 60,000 of 369,390 documents** (Person 2). A memory bound, not a
   design choice. Six times fewer distractors means six times fewer chances to
@@ -305,88 +297,56 @@ ceiling; `fig4` as the headline finding, with `fig3` and the worked failure.
 - **Unjudged documents are scored as wrong.** 35-62% of every top 10 was never
   seen by a judge (Person 5). Standard TREC practice, but it means precision is
   a lower bound and the true figure is unknowable without more judging.
-- **49 queries is few.** The bootstrap intervals overlap for Boolean and VSM,
+- **49 queries is few.** The bootstrap intervals for Boolean and VSM overlap,
   and a single query swings the mean noticeably.
 - **Vocabulary mismatch is unaddressed.** Sparse retrieval can only match terms
   it shares. The worst failures are queries whose relevant arguments use
-  different words, and no amount of tuning fixes that.
+  different words, and no tuning fixes that.
 - **Boolean was ranked to be measurable** (Person 4). Coordination level is not
   part of the Boolean model; a pure Boolean system returns an unordered set and
   is not really comparable to ranked models at all.
 - **Stopword removal cost real query terms.** *"Should teachers get tenure?"*
-  retrieves on two terms. On shorter queries that is a thin basis.
-- **One domain, one language.** Debate portals in English. Nothing here
-  transfers to a corpus without a strong lexical overlap between query and
-  document.
+  retrieves on two terms. On short queries that is a thin basis.
+- **One domain, one language.** English debate portals. Nothing here transfers
+  to a corpus without strong lexical overlap between query and document.
 
 **Future studies**, paired with the limitation each addresses:
 
-- Re-run at full scale (`--max-docs 0`) on a machine with more memory and report
-  how far the scores fall — directly measures the subset's effect.
-- **Dense retrieval** (sentence embeddings) as the fourth approach the rubric
-  marks optional, aimed squarely at the vocabulary mismatch.
-- **Hybrid BM25 + dense**, since the two fail differently — the cheapest real
-  gain available.
+- Re-run at full scale (`--max-docs 0`) with more memory and report how far the
+  scores fall — directly measures the subset's effect.
+- **Dense retrieval** as the fourth approach the rubric marks optional, aimed
+  squarely at the vocabulary mismatch.
+- **Hybrid BM25 + dense**, since the two fail differently — and Person 5's
+  union figure (35.5% against BM25's own coverage) shows the headroom is real.
 - **Query expansion / pseudo-relevance feedback**: take the top k BM25
   documents, extract their strongest terms, re-run. Recovers some of what
   stopword removal cost, with no new model.
-- Judge a sample of the unjudged top-10 documents ourselves, with two annotators
-  and a kappa, to put a bound on how much the unjudged column hides.
+- Judge a sample of the unjudged top-10 documents ourselves, two annotators and
+  a kappa, to bound how much the unjudged column hides.
 
-**Slides:** 1 — limitations and future work as paired lines, so each limitation
-visibly has an answer.
-
----
-
-## Person 7 — Presentation & Report Clarity (rubric: 5 pts)
-
-Owns the deck, the references and the closing, and cross-checks the other six
-parts for consistency.
-
-**Before the talk:**
-
-- One template — same font, same colours, same title position on every slide.
-- Collect bullets from this document. Bullets only; nobody pastes a paragraph.
-- Check every chart is readable from the back of the room. `fig4` is the one
-  that matters most — make sure the "16" is legible.
-- One timed rehearsal; cut whatever runs long.
-
-**Consistency checks across parts:**
+**Presentation & Report Clarity** — cross-checking the other five parts:
 
 - Terminology: a **document** is one argument; a **query** is one debate
   question; a **judgment** is one (query, document, level) row; **relevant**
-  always means level >= 1 unless explicitly stated otherwise.
-- Numbers that must match everywhere they appear: 60,000 documents, 49 queries,
-  2,210 judgments, 19 relevant per query.
+  always means level ≥ 1 unless explicitly stated otherwise. Nobody says
+  "accuracy" — this is ranking, not classification.
+- Numbers that must match wherever they appear: 60,000 documents, 49 queries,
+  2,210 judgments, 19 relevant per query, 50,045 terms.
 - Figure ownership: `fig1`-`fig5` all belong to Person 5. Nobody else shows a
   chart, so nothing is duplicated.
 - Every number traces to a report file and section — this document's citations
   are the map for that check.
+- Owns the template, the references slide and the closing.
 
-**Closing slide:**
+**References**: Bondarenko et al. (2020) *Overview of Touché 2020*, CLEF;
+Thakur et al. (2021) *BEIR*, NeurIPS; Robertson & Zaragoza (2009) *The
+Probabilistic Relevance Framework: BM25 and Beyond*; Salton, Wong & Yang (1975)
+*A Vector Space Model for Automatic Indexing*; Porter (1980) *An Algorithm for
+Suffix Stripping*; dataset `huggingface.co/datasets/BeIR/webis-touche2020`,
+CC BY-SA 4.0; tools scikit-learn, SciPy, NLTK, pandas, matplotlib.
 
-- 49 debate questions, 60,000 arguments, three classic retrieval models, one
-  index and one scorer.
-- **BM25 wins on every measure — nDCG@10 0.525 against 0.289 and 0.183.**
-- The reason is length normalisation, and we measured it: VSM's median returned
-  document is 16 words.
-- Honest limits: a pooled subset, unjudged documents counted as wrong, 49
-  queries.
-
-**References slide:**
-
-- Bondarenko et al. (2020), *Overview of Touché 2020: Argument Retrieval*, CLEF
-- Thakur et al. (2021), *BEIR: A Heterogeneous Benchmark for Zero-shot
-  Evaluation of Information Retrieval Models*, NeurIPS
-- Robertson & Zaragoza (2009), *The Probabilistic Relevance Framework: BM25 and
-  Beyond*
-- Salton, Wong & Yang (1975), *A Vector Space Model for Automatic Indexing*
-- Porter (1980), *An Algorithm for Suffix Stripping*
-- Dataset: `huggingface.co/datasets/BeIR/webis-touche2020`, CC BY-SA 4.0
-- Tools: scikit-learn, SciPy, NLTK, pandas, matplotlib
-- Code: this repository
-
-**Slides:** 2 — conclusion; references.
+**Slides:** 2 — limitations/future-work pairs; closing summary, references and
+Q&A transition.
 
 ---
 
@@ -400,6 +360,6 @@ parts for consistency.
 - Person 5 has the only genuinely surprising result. Give that part the extra
   minute if the deck runs long elsewhere.
 - Hand-offs follow the pipeline: Person 2 → 3 (60,000 documents and 2,210
-  judgments arrive), Person 3 → 4 (one index, 50,045 postings lists, serves all
+  judgments arrive), Person 3 → 4 (one index, 50,045 postings lists, serving all
   three models), Person 4 → 5 (three runs, 100 deep, one scorer), Person 5 → 6
   (what the unjudged column and the vocabulary mismatch leave open).

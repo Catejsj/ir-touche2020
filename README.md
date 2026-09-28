@@ -11,11 +11,13 @@ Task 1 (argument retrieval), distributed as part of BEIR. Qrels:
 Documents are arguments from the args.me crawl of five public debate portals.
 Licence CC BY-SA 4.0.
 
-## Research questions
+## Research question
 
-1. How do Boolean, vector-space and probabilistic retrieval compare on the same
-   collection under identical scoring?
-2. Where does each one fail, and why?
+**Does BM25 actually beat Boolean matching and TF-IDF at finding good debate
+arguments?**
+
+Yes — nDCG@10 0.525 against 0.289 and 0.183. *Where* and *why* each model fails
+is the explanation behind that answer, not a second question.
 
 ## Results
 
@@ -106,5 +108,8 @@ scripts/           the pipeline
 
 ## Documents
 
-- **`docs/PRESENTATION_STRUCTURE.md`** — the rubric's 7 criteria mapped onto 7
-  speakers, each anchored to the script, report and figure that back it.
+- **`docs/PRESENTATION_STRUCTURE.md`** — the rubric's 7 criteria mapped onto 6
+  speakers, each anchored to the script, report and figure that back it. This is
+  the document people pick their part from.
+- **`docs/PARAMETERS_AND_WHY.md`** — every parameter in the project written as a
+  spoken answer, for question prep.
