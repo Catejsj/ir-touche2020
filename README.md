@@ -58,7 +58,8 @@ mkdir -p data/raw && curl -sL -o data/raw/corpus.parquet "https://huggingface.co
 | 2 | `./.venv/bin/python scripts/preprocess_index.py` | `models/index.npz`, `reports/02_preprocessing_index.txt` |
 | 3 | `./.venv/bin/python scripts/retrieve.py --model all` | `data/processed/run_*.parquet`, `reports/03_retrieval.txt` |
 | 4 | `./.venv/bin/python scripts/evaluate.py` | `reports/04_evaluation.txt` |
-| 5 | `./.venv/bin/python scripts/make_figures.py` | `figures/*.png` |
+| 5 | `./.venv/bin/python scripts/make_figures.py` | `figures/fig1-5*.png` (results) |
+| 6 | `cd scripts && ../.venv/bin/python make_figures_person4.py` | `figures/fig6-7*.png` (how the models work) |
 
 The whole pipeline runs in about two minutes. Add `--sweep` to step 3 for the
 BM25 parameter sweep.
@@ -113,3 +114,5 @@ scripts/           the pipeline
   the document people pick their part from.
 - **`docs/PARAMETERS_AND_WHY.md`** — every parameter in the project written as a
   spoken answer, for question prep.
+- **`docs/SLIDES_PERSON4_RETRIEVAL.md`** — the retrieval-models part in full:
+  slide text, spoken script, both figures explained, and Q&A.

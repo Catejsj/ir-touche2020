@@ -4,8 +4,9 @@ Rubric criterion 4, **25 points**. Two slides.
 
 - **Part A** — for whoever builds the slides. Type the bullets, nothing else.
 - **Part B** — what I say out loud.
-- **Part C** — the words explained.
-- **Parts D–E** — questions I might get, and what is not mine.
+- **Part C** — my two pictures, explained.
+- **Part D** — the words explained.
+- **Parts E–F** — questions I might get, and what is not mine.
 
 **My job in one line:** build the three ways of ranking documents that the
 rubric asks for, and explain how each one decides which document goes first.
@@ -31,7 +32,7 @@ Say that at the start and the rest has somewhere to sit.
 **Slide title:** `Two ways to match: does it contain the words, or point the same way?`
 
 **Small line under the title (all three slides share it):**
-`Query: "Should teachers get tenure?"  →  after cleaning: teacher, tenur`
+`Query: "Should teachers get tenure?"  →  after cleaning: teacher, get, tenur`
 
 ### LEFT COLUMN
 
@@ -52,7 +53,9 @@ Say that at the start and the rest has somewhere to sit.
 - Similarity = the **angle** between the two lists (cosine)
 - The angle ignores length — **and that turns out to be the problem** (Person 5)
 
-No picture on this slide.
+**Picture (bottom half, full width):** `figures/fig6_scoring_walkthrough.png`
+One real query and one real document, scored by all three models. It is the
+slide — the bullets are just labels for it.
 
 ---
 
@@ -70,14 +73,15 @@ No picture on this slide.
 - **We did NOT tune these.** 49 queries, no validation set — tuning on the test
   set would mean reporting how well we tuned, not how well BM25 works
 
-**Then this box, in monospace:**
+**Picture (bottom half, full width):** `figures/fig7_bm25_two_fixes.png`
+Two panels — saturation on the left, length normalisation on the right. This is
+the picture that makes "saturation" and "length normalisation" mean something.
+
+**Small monospace line under the picture, if it fits:**
 
 ```
-query "teacher tenur"  ->  all three models score every document  ->  top 100 kept
-Boolean 0.01s    VSM 0.04s    BM25 0.02s     (49 queries, 60,000 documents)
+49 queries, 60,000 documents:  Boolean 0.01s   VSM 0.04s   BM25 0.02s
 ```
-
-No picture on this slide either — the numbers and the box are the visual.
 
 ---
 
@@ -173,7 +177,78 @@ About 3–4 minutes. This is the shape, not a script to memorise.
 
 ---
 
-# PART C — the words explained
+# PART C — my two pictures, explained
+
+Read this before presenting. If someone points at either one, the answer is
+here.
+
+## Picture 1 — `fig6_scoring_walkthrough.png` (slide 1)
+
+**What it is:** one real query and one real document, put through all three
+models, so you can see what each one actually computes. Nothing here is invented
+— the numbers come from the same functions that produced our results.
+
+**Reading it top to bottom:**
+
+- **QUERY** — the raw question, then what survives cleaning: `teacher`, `get`,
+  `tenur`. Three terms from five words.
+- **DOCUMENT** — a real argument from the collection, *"There should not be a
+  teacher tenure."* It is **842 terms** long against a collection average of
+  **147**, so it is a long document — which matters for the third box.
+- **WHAT THE INDEX TELLS US** — the two facts every model needs. How often each
+  term appears *in this document*, and how many documents in the whole
+  collection contain it.
+- **The three boxes** — each model's answer.
+
+**The one thing to point at:** look at the `get` row. It appears in **14,084 of
+60,000** documents — almost a quarter of the collection. `tenur` appears in
+**67**. That is the whole idea of IDF on one line: `tenur` tells you a great deal
+about what this document is about, `get` tells you almost nothing, and the
+weighting has to reflect that.
+
+**If someone asks why the three scores are so different (3, 2.5, 22.5):** they
+are on different scales and are never compared to each other. Each one only
+ranks documents *within its own model*. A BM25 score of 22 does not mean BM25 is
+"seven times better" than VSM's 2.5 — it means nothing at all across models.
+
+## Picture 2 — `fig7_bm25_two_fixes.png` (slide 2)
+
+**What it is:** BM25's two changes to TF-IDF, drawn as curves. These are the
+formulas themselves plotted, not measurements of our results — so they are true
+regardless of what our data did.
+
+**Left panel — saturation.**
+The x-axis is how many times a word appears in a document. The y-axis is how
+much that adds to the score, relative to appearing once.
+
+- **Grey dashed** — raw counting. Ten mentions count ten times. It runs off the
+  top of the chart.
+- **Orange** — TF-IDF's `1 + log tf`. Already damped, but still climbing at 20.
+- **Green** — BM25. Flattens out fast: by about the fifth mention it has nearly
+  stopped rising.
+
+Say: *"if an argument mentions tenure twice, you know it is about tenure. The
+tenth mention tells you almost nothing new, and BM25 is the only one of the
+three that knows that."*
+
+**Right panel — length normalisation.**
+The x-axis is a document's length divided by the collection average, so 1.0 is
+an average-length document. The y-axis is the multiplier applied to its score.
+
+- **Grey dashed, flat at 1.0 — `b = 0`** — length ignored completely. **This is
+  effectively what the vector space model does**, and it is the setup for
+  Person 5's finding.
+- **Blue dotted — `b = 1`** — fully corrected. Short documents get boosted hard.
+- **Green solid — `b = 0.75`, ours** — a compromise between the two, which is
+  why it is the standard default.
+
+**If someone asks why you chose 0.75:** we did not choose it, it is the
+published default, and the curve shows why it is a reasonable one — it corrects
+length without the extreme boost that `b = 1` gives very short documents.
+
+---
+
+# PART D — the words explained
 
 **Query** — the debate question someone types, e.g. *"Should teachers get
 tenure?"*
@@ -215,7 +290,7 @@ ignored entirely; at b = 1 it is fully corrected.
 
 ---
 
-# PART D — questions I might get
+# PART E — questions I might get
 
 **Why OR and not AND? Isn't AND what Boolean means?**
 Both are Boolean. But after stop word removal our queries are two to four words,
@@ -262,13 +337,15 @@ cost us the error analysis. It is our first future work item.
 
 ---
 
-# PART E — what is NOT mine
+# PART F — what is NOT mine
 
 Do not present these. If asked, name the person who owns them.
 
 - **All the scores.** P@10, MRR, MAP, nDCG, the comparison table — **Person 5**.
   I finish by handing over, not by announcing a winner.
-- **All five figures** belong to Person 5. I show no chart at all.
+- **`fig1`–`fig5` belong to Person 5.** Those are the *results* figures. Mine
+  are `fig6` and `fig7`, which show how the models *work*, not how well they
+  did. No overlap, and nothing is shown twice.
 - **The length-bias finding** (VSM's median document is 16 words) is Person 5's
   headline. I *set it up* by explaining that cosine ignores length — I do not
   give away the punchline.
