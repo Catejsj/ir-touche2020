@@ -116,3 +116,5 @@ scripts/           the pipeline
   spoken answer, for question prep.
 - **`docs/SLIDES_PERSON4_RETRIEVAL.md`** — the retrieval-models part in full:
   slide text, spoken script, both figures explained, and Q&A.
+- **`docs/CODE_BREAKDOWN.md`** — what each script actually runs, line by line,
+  starting with why there is no training code in this project at all.
